@@ -1,0 +1,55 @@
+# AGENTS.md 模板
+
+> **L2 核心文件** · 用途：操作指令 + 行为规范 + 触发条件
+> 路径：`~/.openclaw/workspace/AGENTS.md`
+
+---
+
+## 模板结构
+
+```markdown
+# AGENTS.md — 操作指令
+
+## 启动
+1. 读 `memory/YYYY-MM-DD.md`（今天+昨天）和 TODO.md、PROBLEM.md
+2. 检查根目录 `corrections.md` 中最新纠正并执行
+3. 复杂任务（>5步/多文件/需研究）→ 读 `skills/planning-with-files/SKILL.md`
+4. 任务技能激活 → 读 `skills/activation-rules.md`
+
+## 核心约束
+- **技能优先**：有 skill 就用，不用土办法
+- **3 次自救**：遇到报错先自主排查 3 种不同方向
+- **谋定而后动**：复杂任务先列清单→按序执行
+
+## 任务路由
+| 类型 | 首选技能 |
+|------|---------|
+| 写作 | blog-writer → humanizer → copywriter |
+| ... | ... |
+
+## 触发词清单（自动加载）
+| 触发场景 | 自动加载技能 |
+|---------|-------------|
+| ... | ... |
+```
+
+---
+
+## 实际案例
+
+- 真实例子：`~/.openclaw/workspace/AGENTS.md`
+- B+ 类触发条件示例：<skill-a> / <skill-b> / <skill-c>（按实际安装的技能清单填写）
+- 4 个触发词清单：cron 操作 / git 操作 / 配置修改 / 子智能体
+
+---
+
+## 关键要点
+
+1. **触发词清单**必须有 B+ 类（0 触发技能的触发条件）
+2. **任务路由**必须有"未匹配 → find-skills 搜索"兜底
+3. **核心约束**必须包含"3 次自救"+"谋定而后动"
+4. **跨 agent 协作**必须有 owner 自报 / sessions_send 模式（参考 MEMORY 对应教训条目）
+
+---
+
+_适用 6 层体系 SKILL.md · 模板档_

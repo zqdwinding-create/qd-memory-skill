@@ -1,0 +1,80 @@
+# L6 shared-knowledge 条目模板
+
+> **L6 隐性知识** · 用途：5 类型结构化条目
+> 路径：`config/shared-knowledge.json`
+
+---
+
+## 5 类型 ID 前缀约定
+
+| 类型 | ID 前缀 | 用途 | 实际数量 |
+|------|---------|------|---------|
+| **system-config** | `sys-` | 系统配置 | <count> |
+| **project-state** | `pro-` | 项目状态 | <count> |
+| **conclusion** | `con-` | 经验结论 | <count> |
+| **capability** | `cap-` | 能力/工具 | <count> |
+| **conversation-topic** | （无前缀）| 对话主题 | **1（严重不足）**|
+
+---
+
+## 模板结构（每种类型）
+
+```json
+{
+  "id": "{prefix}-{8-char-hash}",
+  "type": "{type}",
+  "key": "[触发原话 / 上下文]",
+  "value": { ... 实际内容 ... },
+  "tags": ["tag1", "tag2"],
+  "channel": "{telegram|feishu|weixin|qqbot|main|whatsapp}",
+  "created": "YYYY-MM-DDTHH:MM:SS+08:00",
+  "updated": "YYYY-MM-DDTHH:MM:SS+08:00",
+  "source": {
+    "session_id": "{session-uuid}",
+    "message_id": "{message-id}",
+    "daily_log": "memory/YYYY-MM-DD.md"
+  },
+  "confidence": 0.85,
+  "expires": null
+}
+```
+
+---
+
+## 关键要点
+
+1. **ID 前缀**必须符合 5 类型约定（自动化校验）
+2. **`key`** 用触发原话（不是总结后的）— 方便检索
+3. **`source`** 包含 session_id + message_id + daily_log — "活体"验证必备
+4. **`confidence`** 0-1 浮点（自动捕捉打分）
+5. **`expires`** null = 永久；YYYY-MM-DD = 过期时间
+
+---
+
+## 自动捕捉机制
+
+```bash
+# 跑一遍 tacit-knowledge-catcher.py（5 类型检测）
+python3 ~/.openclaw/workspace/scripts/tacit-knowledge-catcher.py
+
+# 跑 unified-memory-search.py（跨通道检索）
+python3 ~/.openclaw/workspace/scripts/unified-memory-search.py "查询词"
+```
+
+**当前状态**（v0 评估）：
+- ⚠️ <N> 条，<M> 月未更新
+- ⚠️ conversation-topic 类型仅 1 条
+- 🟡 自动捕捉机制需要重新跑起来
+
+---
+
+## 质量评分（活体）
+
+- **数量健康度**：当前 <N> 条，规模增长后才算"激活"
+- **类型分布**：5 类型中 conversation-topic 严重不足
+- **更新频率**：理论自动，实际 1+ 月空缺
+- **置信度分布**：高分 (>0.8) 占比待量化
+
+---
+
+_适用 6 层体系 SKILL.md · 模板档_

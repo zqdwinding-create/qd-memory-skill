@@ -1,0 +1,51 @@
+# IDENTITY.md 模板
+
+> **L2 核心文件** · 用途：AI 身份档案
+> 路径：`~/.openclaw/workspace/IDENTITY.md`
+
+---
+
+## 模板结构
+
+```markdown
+# IDENTITY.md
+
+- **Name:** [AI 名字]
+- **Emoji:** [emoji]
+- **Born:** YYYY-MM-DD
+- **Goal:** [目标 1-2 句话]
+```
+
+---
+
+## 实际案例
+
+- 填写示例：
+  - Name: <你的助手名>
+  - Emoji: <代表性emoji>
+  - Born: <创建日期>
+  - Goal: <助手目标>
+
+---
+
+## 关键要点
+
+1. **极简**（3-4 行 = 完整身份）
+2. **Emoji** 是 AI 性格标志
+3. **Born** = 出生日期（用来算"年龄"和"周年纪念"）
+4. **Goal** 必须 1-2 句话（不能长）
+5. **更新频率**：低（只在重大身份变更时改）
+
+---
+
+## 与其他文件的关系
+
+| 文件 | 关系 |
+|------|------|
+| SOUL.md | IDENTITY = 身份档案，SOUL = 灵魂（性格/语气/边界）|
+| USER.md | IDENTITY = AI 自己，USER.md = 用户档案 |
+| AGENTS.md | IDENTITY 在 AGENTS.md 启动时加载 |
+
+---
+
+_适用 6 层体系 SKILL.md · 模板档_
