@@ -1,8 +1,8 @@
 ---
 name: eight-layer-memory
 displayName: 6 层记忆体系 · 跨通道记忆 SKILL
-version: 1.0.0
-status: v1.0 正式版（合成基准）
+version: 1.1.0
+status: v1.1 正式版（合成基准 + 生产脚本回填）
 description: |
   6 层记忆体系 — 跨通道 + 时间近度 + 跨层融合的 LLM 行为模板。
   让 LLM 知道什么时候写到哪层、怎么查、怎么融合。
@@ -203,7 +203,7 @@ score = semantic_similarity × channel_weight × time_decay × type_boost
 
 - **commit 即 push**：6 层体系脚本改动立刻 push（不囤本地 commit）
 - **闪断保护**：state.json + atomic write 模式（已实现，待测）
-- **L6 校验**：每周跑一次清洗/去重脚本（生产已投产 `shared-knowledge-cleanup.py`；开源版随 v0.3 回填，见 Roadmap）
+- **L6 校验**：每周跑一次 `shared-knowledge-cleanup.py`（随 SKILL 分发，dry-run 报告 → 确认后 --apply）
 - **L9 调用日志**：每次跑记入 daily log
 - **不泄露隐私**：SKILL.md / 脚本 / 测试数据中**绝不**出现真实 API key / token / 私人路径 / 真实账号 / 真实 cron 与聊天 ID / 人名 / 机构名
 
@@ -239,8 +239,9 @@ score = semantic_similarity × channel_weight × time_decay × type_boost
 - [ ] **TODO · 子智能体 toolsAllow 两处配置**的规范化模板（与 v0.5 多智能体共享记忆规范一并交付）
 - [ ] **TODO · L5 short-term-recall.json 独立文件形态**：存档性保留（生产已由平台内置记忆组件 + 每日晋升任务替代；仅当需要跨平台可移植快照时再启用）
 - [ ] **TODO · TOOLS.md 第 8 类核心文件**：模板已提供，生产未启用；沉淀启用实践后回写文档
-- [ ] **v0.3 · save-conversations.py v3–v5 增强**脱敏回填：SQLite 索引重建（平台迁库适配）/ WAL 三件套拷贝防撕裂 / 临时文件清理（生产已投产，开源版停留在 v2）
-- [ ] **v0.3 · L6 运维脚本开源**：`shared-knowledge-cleanup.py`（清洗/去重，生产已投产）+ `migrate-conclusion-to-conversation-topic.py`（类型迁移，生产已执行）+ `tacit-knowledge-processor.py`
+- [x] ~~**v1.1 · save-conversations.py v5 脱敏回填**~~ ✅ 已交付（v1.1.0）：SQLite 索引重建（平台迁库适配）/ WAL 三件套拷贝防撕裂 / 临时文件清理
+- [ ] **TODO · L6 运维脚本开源（余量）**：`migrate-conclusion-to-conversation-topic.py`（类型迁移，生产已执行）+ `tacit-knowledge-processor.py`
+- [x] ~~**v1.1 · L6 清洗脚本开源**~~ ✅ 已交付（v1.1.0）：`shared-knowledge-cleanup.py`（清洗/去重，不删除原数据）
 - [ ] **v0.3 · 9 维自检泛化版模板**独立成档收录 `assets/`（历史评分档案本机私有，不入仓）
 - [ ] **v0.4 · 检索分流决策模板泛化版**（生产已落地，见「检索分流决策表」节；本项交付开箱即用模板文件）
 - [ ] **v0.5 · 周蒸馏自动化模板**（每周低峰定时产出周记忆蒸馏；生产已投产，配置未含于开源版）
@@ -255,6 +256,13 @@ _合成依据：v0.2.0 文档骨架 × 2026-11-16「本地运行 vs 开源版」
 _安装方法：见 `INSTALL.md` 或 GitHub `zqdwinding-create/qd-memory-skill`_
 
 ## 变更记录
+
+### v1.1.0（2026-11-16 生产脚本回填）
+
+- **save-conversations.py v2 → v5 脱敏回填**：增量追加（.state.json 闪断保护）/ SQLite 索引重建（sessions.json 缺失时从平台库重建）/ WAL 三件套拷贝防撕裂 / oc-tx 临时文件清理；脱敏仅注释层（定时任务 ID、精确内部数量→量级描述），零功能差异（diff 核对 + py_compile 通过）
+- **shared-knowledge-cleanup.py 开源**（Roadmap v0.3 项兑现）：L6 信噪比打分 + 归档不删原数据
+- **tools/md5_audit.py 新增**（Phase4 防漂移）：本地安装目录 ↔ 仓工作副本月度 md5 对账，漂移即 diff 摘要，退出码可挂定时检查；用法见根 README
+- 文档口径同步：5 个生产脚本、Roadmap v1.1 项勾选、CHANGELOG v1.1.0
 
 ### v1.0.0（2026-11-16 合成正式版）
 

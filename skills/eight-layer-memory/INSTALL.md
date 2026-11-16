@@ -14,7 +14,7 @@
 | 类别 | 内容 | 路径 |
 |------|------|------|
 | **SKILL（行为模板）** | 让 LLM 知道 6 层怎么用、什么时候调什么 | `skills/eight-layer-memory/` |
-| **生产脚本（4 个）** | 真正干活的工具 | `~/.openclaw/skills/eight-layer-memory/scripts/` |
+| **生产脚本（5 个）** | 真正干活的工具 | `~/.openclaw/skills/eight-layer-memory/scripts/` |
 | **数据文件（L6）** | 隐性知识库 | `~/.openclaw/workspace/shared-knowledge.json` |
 
 **两者必须都装**：
@@ -30,7 +30,7 @@
 
 ---
 
-## 1 · 装 SKILL（自包含：行为模板 + 4 个脚本 + 3 个单测）
+## 1 · 装 SKILL（自包含：行为模板 + 5 个脚本 + 3 个单测）
 
 ### 1.1 从 GitHub 克隆（推荐）
 
@@ -68,8 +68,8 @@ tar xzf /tmp/eight-layer-memory-skill.tgz
 # 1. SKILL.md 存在
 ls -la ~/.openclaw/skills/eight-layer-memory/SKILL.md
 
-# 2. 4 个脚本都装上
-ls ~/.openclaw/skills/eight-layer-memory/scripts/{unified-memory-search,tacit-knowledge-catcher,save-conversations,l6-incremental-catch}.py
+# 2. 5 个脚本都装上
+ls ~/.openclaw/skills/eight-layer-memory/scripts/{unified-memory-search,tacit-knowledge-catcher,save-conversations,l6-incremental-catch,shared-knowledge-cleanup}.py
 
 # 3. 3 个单测都装上
 ls ~/.openclaw/skills/eight-layer-memory/scripts/tests/*.py
@@ -229,7 +229,7 @@ python3 -c "import json; d=json.load(open('~/.openclaw/workspace/shared-knowledg
 
 **6 层体系是 LLM 行为模板，可以跨用户复用**：
 - ✅ SKILL.md / 8-layer-spec.md / 9 维评分 / 模板 = **通用**
-- ✅ 4 个脚本 = **通用**（不依赖用户数据）
+- ✅ 5 个脚本 = **通用**（不依赖用户数据）
 - ❌ shared-knowledge.json = **个人数据，绝不复制**
 - ❌ daily logs = **个人数据，绝不复制**
 - ❌ SOUL.md / USER.md / IDENTITY.md = **个人身份，绝不复制**
@@ -263,7 +263,7 @@ python3 -c "import json; d=json.load(open('~/.openclaw/workspace/shared-knowledg
 - **5 个分类**：(1) SKILL 装 (2) 脚本装 (3) cron 装 (4) 白名单配 (5) 端到端验证
 - **不变量**：跨用户只装"通用部分"，不复制任何"个人数据"
 - **3 个常见错误**：toolsAllow 漏配、AGENTS.md 漏触发条件、shared-knowledge.json 误复制
-- **下个版本**：v0.3 脚本回填 + L6 运维脚本开源（见 CHANGELOG 路线图）
+- **下个版本**：v0.4 分流决策模板泛化版（见 CHANGELOG 路线图）
 
 ---
 

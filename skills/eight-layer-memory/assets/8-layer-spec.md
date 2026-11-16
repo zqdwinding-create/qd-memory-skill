@@ -109,7 +109,7 @@
 - **生命周期**：永久归档
 - **数量**：数百条起步，随使用持续增长
 - **更新频率**：自动（tkc 捕捉 + 每 2h 增量更新定时任务跑 `l6-incremental-catch.py`）
-- **清洗/去重**：生产已投产 `shared-knowledge-cleanup.py`（开源随 v0.3 回填）
+- **清洗/去重**：随 SKILL 分发（`scripts/shared-knowledge-cleanup.py`，dry-run 报告 → --apply 归档不删原数据）
 - **ID 前缀（检测器支持 5 前缀，活跃 4 类）**：
 
 | 类型 | ID 前缀 | 状态 |
@@ -219,3 +219,4 @@ score = semantic_similarity × channel_weight × time_decay × type_boost
 
 - **v0.1/v0.2**（2026-06-22）：6 层规范抽取 + L9 增强层 + 通道维度 + 时间近度
 - **v1.0**（2026-11-16 合成）：按「本地运行 vs 开源版」一致性审计逐项修正——L4 双源、L5 折叠层统一、L6 路径与类型演化、L7 引用层实现相关、L2 模板/生产分类、L8 命名漂移说明；未落地项全部移入 Roadmap（见 SKILL.md）
+- **v1.1**（2026-11-16 脚本回填）：save-conversations v5 + L6 清洗脚本入仓；本地安装 ↔ 仓工作副本月度对账工具（tools/md5_audit.py）落地

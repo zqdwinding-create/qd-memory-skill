@@ -111,12 +111,13 @@ eight-layer-memory/
 ├── assets/
 │   ├── 8-layer-spec.md                # 6 层架构（L 编号保留）详细规范
 │   └── templates/                     # 10 个 L2 核心文件模板
-├── scripts/                           # 4 个生产脚本 + 3 个单测
+├── scripts/                           # 5 个生产脚本 + 3 个单测
 │   ├── README.md
 │   ├── unified-memory-search.py       # L9 跨层融合
 │   ├── tacit-knowledge-catcher.py     # L6 隐性知识捕捉（11KB）
 │   ├── l6-incremental-catch.py        # L6 cron 单步（2KB）
-│   ├── save-conversations.py          # L4 会话保存（8KB）
+│   ├── shared-knowledge-cleanup.py    # L6 清洗/去重（7.7KB）
+│   ├── save-conversations.py          # L4 会话保存（v5，13KB）
 │   └── tests/                         # 63 tests
 │       ├── test_unified_memory_search.py
 │       ├── test_unified_search_e2e.py
@@ -175,7 +176,7 @@ eight-layer-memory/
 - **方法论**：5 步法工作流（写 → 存 → 检 → 活 → 化）
 - **当前状态**：v0.2.0（生产部署验证）
 - **License**：MIT
-- **下个版本**：v0.3 脚本回填 + L6 运维脚本开源（见 CHANGELOG 路线图）
+- **下个版本**：v0.4 分流决策模板泛化版（见 CHANGELOG 路线图）
 
 ---
 

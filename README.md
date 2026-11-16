@@ -15,7 +15,7 @@
 一套经过生产环境实战验证的 LLM 记忆管理方案，包含：
 
 1. **行为模板（SKILL.md）**——教 LLM 记忆的写入规则、检索时机、跨层融合策略
-2. **4 个生产脚本**——统一检索、隐性知识捕捉、会话保存、L6 增量更新
+2. **5 个生产脚本**——统一检索、隐性知识捕捉、会话保存、L6 增量更新、L6 清洗去重
 3. **3 套单元测试**（63 tests）——核心检索 / 捕捉脚本行为覆盖（save-conversations 与 l6-catch 测试待补）
 4. **10 类核心文件模板**——从零开始搭建记忆体系的脚手架
 
@@ -87,6 +87,19 @@ python3 unified-memory-search.py "关键词" --json --top 5
 | [`skills/eight-layer-memory/assets/8-layer-spec.md`](skills/eight-layer-memory/assets/8-layer-spec.md) | 架构规范 |
 | [`skills/eight-layer-memory/assets/templates/`](skills/eight-layer-memory/assets/templates/) | 10 类核心文件模板 |
 | [`CHANGELOG.md`](CHANGELOG.md) | 更新迭代说明 |
+| [`tools/md5_audit.py`](tools/md5_audit.py) | 月度对账工具：本地安装 ↔ 仓工作副本 md5 漂移检测 |
+
+## 防漂移对账（月度）
+
+```bash
+# 默认对账 SKILL.md（本地安装目录 ↔ 仓内同名文件）
+python3 tools/md5_audit.py
+
+# 对账其他 skill 内文件（相对仓根路径）
+python3 tools/md5_audit.py skills/eight-layer-memory/assets/8-layer-spec.md
+```
+
+md5 一致退出码 0；存在漂移退出码 1 并打印 diff 摘要（前 20 行），可直接挂月度定时检查。
 
 ## 设计决策
 

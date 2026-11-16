@@ -3,6 +3,26 @@
 所有显著变更记录于此。格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [v1.1.0] - 2026-11-16
+
+生产脚本回填版（Phase3）+ 防漂移机制（Phase4）。
+
+### Added
+
+- `scripts/shared-knowledge-cleanup.py`：L6 信噪比清理——质量打分（type 合法性/id 前缀匹配/字段对齐/内容长度/时间近度），低分条目归档到 archive 文件，不删除原数据；默认 dry-run，--apply 前自动备份
+- `tools/md5_audit.py`：本地安装目录 ↔ 仓工作副本 md5 月度对账，漂移即输出 diff 摘要（前 20 行），退出码可直接挂定时检查；用法见根 README「防漂移对账」
+
+### Changed
+
+- `scripts/save-conversations.py` v2 → v5（生产演进版脱敏回填）：增量追加（.state.json 闪断保护）/ SQLite 索引重建（sessions.json 缺失时从平台库重建）/ WAL 三件套拷贝防撕裂 / oc-tx 临时文件清理。脱敏仅注释层（定时任务 ID→泛化、精确内部数量→量级描述），零功能差异
+- 仓库移除 5 个 `__pycache__/*.pyc` 编译产物（.gitignore 早已覆盖，文件先于规则提交）；新增 `tools/` 目录
+- 文档口径同步：5 个生产脚本、Roadmap v1.1 项勾选、SKILL/spec 版本号 1.1.0
+
+### 安全说明
+
+- 回填前原脚本与脱敏后版本逐行 diff 核对（仅注释层差异），双脚本 py_compile 通过
+- 全仓敏感串复扫零命中（人名/定时任务 ID/账号 ID/机器路径/公司名/精确内部数量）
+
 ## [v1.0.0] - 2026-11-16
 
 合成正式版。以 v0.2.0 文档为底，按 2026-11-16「本地实际运行 vs GitHub 开源版」一致性审计逐项修正；方案 B：本地使用版与开源版同一基准，今后本地优化同周期脱敏回仓。
@@ -70,8 +90,8 @@ v0.1.0 → v0.2.0 期间，本体系在某多通道个人知识管理环境中�
 
 ## 路线图（Roadmap）
 
-- [ ] v0.3：L6 数据清洗/去重脚本开源（cleanup/dedup，生产已投产）+ conclusion→conversation-topic 迁移脚本 + save-conversations v3–v5 增强（SQLite 重建 / WAL 防撕裂 / 临时文件清理）脱敏回填 + 9 维自检泛化版模板收录
+- [x] ~~v1.1（2026-11-16 已交付）~~：save-conversations v5 脱敏回填 + shared-knowledge-cleanup.py 开源 + tools/md5_audit.py 月度对账
 - [ ] v0.4：与 OpenClaw 内置记忆组件（active-memory / memory-core）的分流决策模板（泛化版开箱即用；生产实践见 SKILL.md「检索分流决策表」）
 - [ ] v0.5：多智能体共享记忆机制的规范化（含子智能体 toolsAllow 两处配置模板）+ 周蒸馏自动化模板
-- [ ] 待定：L9 每 30 分钟自动调度 cron（若落地，回写 SKILL.md「落地状态」表）；TOOLS.md 第 8 类启用实践沉淀；L5 short-term-recall.json 独立文件形态（仅跨平台可移植快照需求出现时启用）
+- [ ] 待定：L9 每 30 分钟自动调度 cron（若落地，回写 SKILL.md「落地状态」表）；TOOLS.md 第 8 类启用实践沉淀；L5 short-term-recall.json 独立文件形态；conclusion→conversation-topic 迁移脚本与 tacit-knowledge-processor.py 开源；9 维自检泛化版模板收录
 

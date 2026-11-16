@@ -3,6 +3,9 @@
 from __future__ import annotations
 """保存会话记录 — 直接读 session JSONL 文件，不依赖 LLM
 
+开源脱敏版（2026-11-16 自生产 v5 回填）：不含任何真实定时任务 ID / 账号 ID /
+人名 / 机器特定路径；路径均基于 Path.home() 的 OpenClaw 标准安装约定。
+
 v2 改造 (2026-06-08): 增量追加模式
 - 文件名从 YYYY-MM-DD_HH-MM_<key>.jsonl 改成 YYYY-MM-DD_<key>.jsonl（一天一个）
 - 新增 .state.json 记录每个 session 的 last_saved_ts，下次只追加 ts > state 的消息
@@ -24,6 +27,11 @@ SKIP_PATTERNS = ["HEARTBEAT.md", "保存会话记录任务触发", "NO_REPLY"]
 SKIP_CONTENT_PREFIXES = ["System:"]
 STORE = Path.home() / ".openclaw/agents/main/sessions/sessions.json"
 STATE_FILE = Path.home() / ".openclaw/workspace/conversations/.state.json"
+
+# v5 (2026-10-25 心跳修复): 本脚本每次运行会为「无 .jsonl 的 session」物化一份
+# oc-tx-<sid>.jsonl 到 TMPDIR，但从不清理 → 实测累积数千个文件 / 数百 MB。
+# 记录本轮生成的临时文件，脚本结束时统一删除；同时清扫历史遗留（>24h）。
+_TMP_OC_TX = []
 
 def extract_text(content):
     if isinstance(content, str):
@@ -63,11 +71,82 @@ def save_state(state: dict) -> None:
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # 1. 加载 sessions index（用于识别 session key 和 updatedAt）
-if not STORE.exists():
-    print("❌ sessions.json not found")
-    exit(1)
+# v3 (2026-09-04): gateway 2026.8.2 将 session 存储迁移到 SQLite，不再生成 sessions.json。
+# sessions.json 缺失时，从 openclaw-agent.sqlite（先拷贝到 /tmp 避开 live-state 锁）重建索引。
+def rebuild_store_from_sqlite() -> dict:
+    import shutil, sqlite3, tempfile, time
+    src = Path.home() / ".openclaw/agents/main/agent/openclaw-agent.sqlite"
+    tmp = Path(tempfile.gettempdir()) / "oc-agent-index-copy.sqlite"
+    # v4 (2026-10-23): 主库已 WAL 模式且体积达 GB 级，单独 copy 主文件会在 gateway
+    # 正在 checkpoint 时拷到撕裂副本，报 "database disk image is malformed"。
+    # 修复：主库 + -wal + -shm 三件套一起复制，并容忍单次 retry。
+    last_err = None
+    conn = None
+    for attempt in range(3):
+        for suffix in ("", "-wal", "-shm"):
+            s = Path(str(src) + suffix)
+            if s.exists():
+                shutil.copy2(s, Path(str(tmp) + suffix))
+        try:
+            conn = sqlite3.connect(f"file:{tmp}?mode=ro", uri=True)
+            conn.execute("SELECT count(*) FROM session_nodes").fetchone()
+            break
+        except sqlite3.DatabaseError as exc:
+            last_err = exc
+            conn = None
+            print(f"⚠️ 第 {attempt + 1} 次重建副本不可用（{exc}），重试中…")
+            time.sleep(5)
+    if conn is None:
+        raise last_err
+    sess_dir = Path.home() / ".openclaw/agents/main/sessions"
+    store = {}
+    for key, sid, upd, entry in conn.execute(
+        "SELECT session_key, current_session_id, updated_at, entry_json FROM session_nodes"
+    ):
+        try:
+            meta = json.loads(entry) if entry else {}
+        except json.JSONDecodeError:
+            meta = {}
+        meta["updatedAt"] = upd
+        sf = sess_dir / f"{sid}.jsonl"
+        if sf.exists():
+            meta["sessionFile"] = str(sf)
+        else:
+            # 新架构：transcript 只存在 SQLite 中 → 物化到 /tmp 供读取
+            rows = conn.execute(
+                "SELECT event_json FROM transcript_events WHERE session_id=? ORDER BY seq",
+                (sid,),
+            ).fetchall()
+            # v5 (2026-10-25 心跳修复): transcript_events 表存在 event_json=NULL 行
+            # (实测相当比例的行含 NULL，涉及大量 session)。原代码
+            #   "".join(r[0] + "\n" for r in rows)
+            # 遇到 NULL 会抛 TypeError: unsupported operand type(s) for +: 'NoneType' and 'str'
+            # -> 定时窗口内必失败（失败计数随调度逐轮累积）。
+            # 修复: 跳过 NULL 行。语义等价——下游只认 type=="message" 的合法 JSON,
+            # NULL 行本就会被 json.loads 跳过。
+            payloads = [r[0] for r in rows if r[0] is not None]
+            if not payloads:
+                continue
+            tmpf = Path(tempfile.gettempdir()) / f"oc-tx-{sid}.jsonl"
+            tmpf.write_text("".join(p + "\n" for p in payloads))
+            _TMP_OC_TX.append(tmpf)   # v5: 记入待清理清单（脚本结尾统一删除）
+            meta["sessionFile"] = str(tmpf)
+        store[key] = meta
+    conn.close()
+    tmp.unlink(missing_ok=True)
+    for suffix in ("-wal", "-shm"):
+        Path(str(tmp) + suffix).unlink(missing_ok=True)
+    return store
 
-store = json.loads(STORE.read_text())
+if STORE.exists():
+    store = json.loads(STORE.read_text())
+else:
+    try:
+        store = rebuild_store_from_sqlite()
+        print(f"ℹ️ sessions.json 不存在（SQLite 迁移），从 openclaw-agent.sqlite 重建 {len(store)} 个会话")
+    except Exception as e:
+        print(f"❌ sessions.json not found 且 SQLite 重建失败: {e}")
+        exit(1)
 SESS_DIR = Path.home() / ".openclaw/agents/main/sessions"
 state = load_state()
 total_saved = 0
@@ -218,3 +297,35 @@ try:
         f.write(f"\n---\n## 会话保存（脚本 v2）{NOW.strftime(' %H:%M')}\n- 追加 {total_saved} 个 direct chat 会话，共 {total_appended_lines} 条\n")
 except Exception:
     pass
+
+# 6. 清理本轮 + 历史遗留的 oc-tx-*.jsonl 临时物化文件（v5, 2026-10-25）
+#    这些文件只在本脚本运行期间被读取（meta["sessionFile"] 指向它们），
+#    运行结束即可安全删除。此前从不清理 → TMPDIR 累积到数百 MB。
+try:
+    import tempfile as _tf
+    _tmpdir = Path(_tf.gettempdir())
+    _freed = 0
+    _n = 0
+    for _f in _TMP_OC_TX:
+        try:
+            if _f.exists():
+                _freed += _f.stat().st_size
+                _f.unlink()
+                _n += 1
+        except OSError:
+            pass
+    # 清扫历史遗留：24h 前的 oc-tx 文件（无进程持有，可安全删）
+    import time as _time
+    _cutoff = _time.time() - 86400
+    for _f in _tmpdir.glob("oc-tx-*.jsonl"):
+        try:
+            if _f.stat().st_mtime < _cutoff:
+                _freed += _f.stat().st_size
+                _f.unlink()
+                _n += 1
+        except OSError:
+            pass
+    if _n:
+        print(f"🧹 清理 oc-tx 临时文件 {_n} 个，释放 {_freed / 1024 / 1024:.1f} MB")
+except Exception as e:
+    print(f"⚠️ oc-tx 清理跳过: {e}")
