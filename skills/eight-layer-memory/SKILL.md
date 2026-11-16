@@ -1,18 +1,18 @@
 ---
 name: eight-layer-memory
 displayName: 6 层记忆体系 · 跨通道记忆 SKILL
-version: 0.2.0
-status: v0.2.0
+version: 1.0.0
+status: v1.0 正式版（合成基准）
 description: |
   6 层记忆体系 — 跨通道 + 时间近度 + 跨层融合的 LLM 行为模板。
   让 LLM 知道什么时候写到哪层、怎么查、怎么融合。
 
-  6 层存储 = L0 上下文 / L1 session / L2 核心文件 / L3 daily log / L4 raw / L6 shared / L8 沉淀 / L9 跨层融合；引用层 2 个：L5（已由 L9 替代）、L7（内置检索）。
+  6 层存储 = L0 上下文 / L1 session / L2 核心文件 / L3 daily log / L4 raw / L6 shared / L8 沉淀 / L9 跨层融合；引用层 2 个：L5（短期，已由 L9 替代）、L7（检索引用）。
   工作流 5 步 = 写 → 存 → 检 → 活 → 化。
   触发词：6 层 / 记忆 / 检索 / 知识库 / tacit / shared-knowledge / 跨通道 / 跨层融合 / unified-memory-search。
   边界：用户自己的 L6 shared-knowledge 数据（含个人/家庭/工作信息）属于私有数据，不应提交到公开仓库；本仓库只包含行为模板与工具，不含任何用户数据。
   工作约定：按 5 步法工作流，不脱胎换骨，不改 6 层本身的算法和脚本。
-  联动：cron 集成（每 30 分钟 L9 跑一次）/ 子智能体 toolsAllow 配两处 / 主会话 AGENTS.md B+ 类触发条件。
+  口径声明：本文档与 assets/8-layer-spec.md、两级 README、INSTALL.md 为同一「6 层存储 + 2 层引用」口径；v1.0 起未落地的机制一律写入文末 Roadmap，正文不写纸面功能。生产实证描述均已脱敏（不含任何真实 cron ID / 账号 ID / 人名 / 机构名 / 机器路径）。
 ---
 
 # 6 层记忆体系 · 跨通道记忆 SKILL
@@ -34,9 +34,27 @@ description: |
 ### ❌ 不适用
 
 - 公开分享你自己的 shared-knowledge.json（个人/家庭/工作信息不应公开）
-
 - 实时对话响应（不在 5 步工作流范围）
 - 跨框架移植（这是 OpenClaw 特定实现）
+
+---
+
+## 架构总览：6 层存储 + 2 层引用
+
+> 本表是全项目唯一架构出处。项目早期为 8 层架构，实战收敛后 L5/L7 折叠为"6 层存储 + 2 层引用"；L 编号保留以兼容历史文档与脚本。各文档与本表不一致处，以本表为准。
+
+| 层 | 职责 | 存储/实现 | 状态 |
+|---|---|---|---|
+| L0 上下文注入 | 每轮会话注入核心文件 | 平台 runtime memory | ✅ 独立存储 |
+| L1 会话层 | 当前会话工作记忆 | 平台 session runtime | ✅ 独立存储 |
+| L2 核心文件 | 行为规范/档案/事实等（模板提供 8 类，生产部署启用 7 类，见下） | `~/.openclaw/workspace/*.md` | ✅ 独立存储 |
+| L3 每日日志 | `memory/YYYY-MM-DD.md` 原始流水 | `~/.openclaw/workspace/memory/` | ✅ 独立存储 |
+| L4 会话原始记录 | **双源**：①平台原生 session 转录（`~/.openclaw/agents/main/sessions/`）②save-conversations.py 物化目录（`~/.openclaw/workspace/conversations/raw/YYYY-MM/*.jsonl`，L9 扫描源） | 两目录并存，互为补充 | ✅ 独立存储 |
+| L6 隐性知识库 | 结构化 JSON 条目（shared-knowledge） | `~/.openclaw/workspace/shared-knowledge.json` | ✅ 独立存储 |
+| L8 经验沉淀 | 长周期提炼归档（lessons / taskreports 分类目录 / Obsidian / MEMORY.md 索引） | 多落点 | ✅ 独立存储 |
+| L9 跨层融合检索 | 三角融合 + 加权排序（含检索工具） | `unified-memory-search.py` | ✅ 独立存储 |
+| ~~L5 短期记忆~~ | 职责已由 L9 覆盖；生产实现 = 平台内置记忆组件（SQLite 存储、TTL 管理）+ 每日低峰「记忆晋升」定时任务 | 折叠层，编号保留 | 🔗 折叠（兼容保留） |
+| L7 检索引用层 | 语义检索的引用层（非独立实现）：可选实现 = 平台内置向量检索，或自建本地语义索引（离线推理、秒级响应；生产部署两者并存） | 实现相关 | 🔗 引用层 |
 
 ---
 
@@ -46,45 +64,47 @@ description: |
 
 | 层 | 写到哪里 | 例子 |
 |----|---------|------|
-| **L2 核心文件** | AGENTS.md / SOUL.md / USER.md / IDENTITY.md / TOOLS.md / MEMORY.md / TODO.md / PROBLEM.md | 8 类核心文件是"工作区骨架" |
+| **L2 核心文件** | 模板提供 8 类：AGENTS / SOUL / USER / IDENTITY / TOOLS / MEMORY / TODO / PROBLEM；生产部署实测启用 7 类（TOOLS.md 未单独建档，工具与环境信息由 AGENTS.md 承载） | "工作区骨架" |
 | **L3 每日日志** | `memory/YYYY-MM-DD.md` | 每天会话的"现场" |
-| **L4 原始记录** | `sessions/*.jsonl`（自动） | 全量会话原始数据 |
+| **L4 原始记录** | 双源（见架构总览）：平台自动记录 + save-conversations.py 定期物化 | 全量会话原始数据 |
 
 **触发场景**：
 - 收到"要改 AGENTS.md" → 写到 L2
 - "今天做了什么" → 写到 L3 daily log
 - 任何 LLM 行为 → 自动 L4 记录
 
-### 第 2 步 · **存** — 自动捕捉到 L5-L6
+### 第 2 步 · **存** — 自动捕捉到 L6
 
-| 层 | 存什么 | 算法 |
+| 层 | 存什么 | 实现 |
 |----|--------|------|
-| **L5 短期记忆** | `short-term-recall.json`（9 天窗口） | 已被 L9 替代，仅做兼容 |
-| **L6 shared-knowledge** | `config/shared-knowledge.json`（结构化条目） | 5 类型自动检测 |
+| **L5 短期记忆** | 职责由 L9 承担（折叠层）；生产实际由平台内置记忆组件 + 每日低峰「记忆晋升」定时任务处理短期→长期晋升 | 折叠（兼容保留） |
+| **L6 shared-knowledge** | `~/.openclaw/workspace/shared-knowledge.json`（结构化条目） | tkc 5 前缀自动检测 + 每 2h 增量更新定时任务 |
 
-**L6 5 类型 ID 前缀约定**：
+**L6 ID 前缀约定（检测器支持 5 前缀，活跃 4 类）**：
 - `sys-`（system-config）— 系统配置
 - `pro-`（project-state）— 项目状态
 - `cap-`（capability）— 能力/工具
-- `con-`（conclusion）— 结论
-- `conversation-topic` — 对话主题
+- `conversation-topic` — 对话主题（无前缀）
+- `con-`（conclusion）— 结论（**历史前缀，生产部署已将此类条目整体迁移并入 conversation-topic**，活跃数据为 4 类；迁移脚本开源见 Roadmap）
 
 **触发场景**：
 - 涉及系统配置 → 自动归 `sys-`
 - 涉及项目进度 → 自动归 `pro-`
 - 涉及能力/工具 → 自动归 `cap-`
-- 涉及经验结论 → 自动归 `con-`
+- 经验结论 → 归入 `conversation-topic`（沿用生产演化后的口径）
+
+> 路径注意：L6 唯一活跃路径是 workspace 根下的 `shared-knowledge.json`；早期文档出现过的 `config/shared-knowledge.json` 子路径为历史遗留，已废弃，勿在新部署中使用。
 
 ### 第 3 步 · **检** — 跨通道搜索（L7-L9）
 
-| 层 | 检什么 | 算法 |
+| 层 | 检什么 | 实现 |
 |----|--------|------|
-| **L7 向量搜索** | Gemini embedding | OpenClaw 内置 |
-| **L9 unified-memory-search** | 跨通道 + 时间加权 | 多通道并行 |
+| **L7 检索引用层** | 语义检索 | 平台内置向量检索，或自建本地语义索引（生产部署两者并存） |
+| **L9 unified-memory-search** | 跨通道 + 时间加权 | 多通道并行，单一检索入口 |
 
 **L9 三层防御（α/β/γ）**：
-- α：AGENTS.md 硬约束（不准用旧 API）
-- β：plugin 替换（统一 wrapper）
+- α：主会话行为规范文件（AGENTS.md）硬约束（触发词必调，不准绕过）
+- β：channel-aware 记忆检索插件（生产部署的实际形态：平台插件机制统一封装检索入口）
 - γ：SKILL.md 软规范（本文件）
 
 **L9 加权公式**：
@@ -92,13 +112,13 @@ description: |
 score = semantic_similarity × channel_weight × time_decay × type_boost
 ```
 
-- `channel_weight`：5 通道排序加分（当前 channel +1000）
+- `channel_weight`：通道排序加分（当前 channel +1000）
 - `time_decay`：7d+5 / 30d+2 / 老+0
-- `type_boost`：5 类型分布调节
+- `type_boost`：类型分布调节
 
 **触发场景**：
 - 任何"我之前..." / "上次..." / "你记得..." → 调 L9
-- 通道隔离：默认只查当前通道（如要跨通道，明确说"5 通道全搜"）
+- 通道隔离：默认只查当前通道（如要跨通道，明确说"跨通道全搜"）
 
 ### 第 4 步 · **活** — 跨层融合召回
 
@@ -107,28 +127,54 @@ score = semantic_similarity × channel_weight × time_decay × type_boost
 - L3（半结构化）：daily log（每天 1 份）
 - L4（非结构化）：raw transcript（会话转录文件）
 
-**隐性知识自动捕捉**（5 类型检测）：
+**隐性知识自动捕捉**（前缀自动检测）：
 - 修复案例沉淀（tacit-knowledge 实战）
 - 跨通道"lifecycle" 排序
 - 命中后立即 cite 来源（channel + 日期 + 文件）
 
 **触发场景**：
 - 用户问"我之前说...什么来着" → L6 + L3 + L4 三角查
-- LLM 主动 cite："根据 2026-06-21 Telegram ..."
+- LLM 主动 cite："根据 YYYY-MM-DD Telegram ..."
 
 ### 第 5 步 · **化** — 经验沉淀到 L8
 
 | 层 | 化到哪里 | 例子 |
 |----|---------|------|
-| **L8 知识沉淀** | `taskreports/项目/` | 项目级报告 |
-| **L8 经验教训** | `memory/lessons/system.md` | 教训 1-90 详细版 |
+| **L8 成果沉淀** | `taskreports/<分类>/`（生产部署按研究报告/系统报告/技能增强等分类建目录） | 项目级报告 / 复盘 |
+| **L8 经验教训** | `memory/lessons/system.md` | 教训详细版 |
 | **L8 长文** | Obsidian Vault | 跨日笔记 / 录音 / 草稿 |
-| **L8 索引** | `MEMORY.md` Top 15 速查 | 教训精简版 |
+| **L8 索引** | `MEMORY.md` 速查（Top 15） | 教训精简版 |
+| **L8 周蒸馏** | 每周低峰定时任务产出周记忆蒸馏档案（生产部署已投产；自动化配置未含于开源版，见 Roadmap） | 周期性蒸馏 |
 
 **触发场景**：
 - "记下这个教训" → 写到 `lessons/system.md`
-- "完整复盘" → 写到 `taskreports/项目/`
+- "完整复盘" → 写到 `taskreports/<分类>/`
 - "长文/录音" → 写到 Obsidian Vault
+
+---
+
+## 检索分流决策表（生产实践）
+
+> 生产部署验证过的三级分流：不是所有记忆问题都动 L9，按需求深度选路。
+
+| 需求类型 | 走哪条路 | 说明 |
+|---------|---------|------|
+| 简单回忆（近期 · 同通道 · 模糊指代："刚才/上次说到哪了"） | 平台内置 active-memory 自动召回 | 零操作，内置已跑 |
+| 深度检索（跨通道 · 定日期 · 结构化 · 要证据） | L9 `unified-memory-search.py --channel <通道> --date <日期> --json` | 要出处/时间戳/证据时必走 |
+| 项目/人物/业务/事实类语义检索 | 本地语义索引（L7 自建实现，可选） | 内置检索的增强替代 |
+
+**升级规则**：内置召回已命中但需要通道归属/时间戳/出处证据时 → 升级走 L9；触发词命中 → 硬约束直接调 L9，不跳过。
+
+---
+
+## 行为层配套纪律（生产部署实践，框架描述）
+
+以下为生产部署在行为规范层（AGENTS.md 等）验证过的增强纪律。**开源版只收录框架，具体规则文本属部署方私有，未含于开源版**：
+
+- **写前日志（WAL）**：纠错、专有名词、偏好、决策、具体数值 5 类内容，先落盘再回复，防上下文压缩丢失
+- **巨型文件防复发**：周期性增长的文件超阈值自动切段归档，编号规则本体永留主文件；切段前整份备份、字节级校验
+- **心跳兜底**：周期心跳机械检查"未通知的交付队列"，有则立即推送，不依赖模型记忆
+- **通道隔离铁律**：用户未明示跨通道时，检索只查当前通道（与 L9 默认行为一致）
 
 ---
 
@@ -142,13 +188,14 @@ score = semantic_similarity × channel_weight × time_decay × type_boost
 - **时间近度** / 时间加权
 - **unified-memory-search** / 跨层融合
 
-## 联动
+## 落地状态
 
 | 联动对象 | 怎么联 | 状态 |
 |---------|--------|------|
-| **cron 集成** | 每 30 分钟 L9 unified-memory-search 自动跑一次 | ⏳ 待 H1 |
-| **子智能体** | 各子智能体调 SKILL，toolsAllow 配两处 | ⏳ 待 H2 |
-| **主会话** | AGENTS.md B+ 类加触发条件 + daily log 自动引用 | ⏳ 待 H3 |
+| **主会话触发条件** | 主会话行为规范文件（AGENTS.md）内置触发词硬约束 + 检索分流决策表 + 每次回答给脚本输出证据 | ✅ 已落地（生产部署验证） |
+| **L6 自动更新** | 每 2h 增量捕捉定时任务跑 `l6-incremental-catch.py` | ✅ 已落地（INSTALL 第 3 节含配置方法） |
+| **cron 集成 L9** | 每 30 分钟自动跑一次 unified-memory-search | ⏳ 未落地（生产为触发词硬约束手动调）→ Roadmap |
+| **子智能体** | 各子智能体调 SKILL，toolsAllow 配两处 | ⏳ 未落地（待多智能体共享记忆规范）→ Roadmap |
 
 ---
 
@@ -156,57 +203,85 @@ score = semantic_similarity × channel_weight × time_decay × type_boost
 
 - **commit 即 push**：6 层体系脚本改动立刻 push（不囤本地 commit）
 - **闪断保护**：state.json + atomic write 模式（已实现，待测）
-- **L6 校验**：每周跑一次 `shared-knowledge-cleanup.py（v0.3 提供）`
+- **L6 校验**：每周跑一次清洗/去重脚本（生产已投产 `shared-knowledge-cleanup.py`；开源版随 v0.3 回填，见 Roadmap）
 - **L9 调用日志**：每次跑记入 daily log
-- **不泄露隐私**：SKILL.md / 脚本 / 测试数据中**绝不**出现真实 API key / token / 私人路径 / 真实账号
+- **不泄露隐私**：SKILL.md / 脚本 / 测试数据中**绝不**出现真实 API key / token / 私人路径 / 真实账号 / 真实 cron 与聊天 ID / 人名 / 机构名
 
 ---
 
 ## 验收标准
 
-✅ SKILL 化完成标准（9 维评分 ≥ 70/90）：
+✅ SKILL 化完成标准（9 维评分 ≥ 70/90 达标）：
 
-| 维度 | 目标 | 当前 |
-|------|------|------|
-| 结构·SKILL.md 完整度 | ≥ 8/10 | 0/10 → v0 后 ~6/10 |
-| 结构·6 层架构（L 编号保留）文档 | ≥ 8/10 | 8/10 ✅ |
-| 结构·核心文件模板 | ≥ 8/10 | 9/10 ✅ |
-| 实测·L9 单测覆盖 | ≥ 6/10 | 5/10 |
-| 实测·L6 单测覆盖 | ≥ 6/10 | 5/10 |
-| 实测·跨层融合 E2E | ≥ 6/10 | 4/10 |
-| 活体·自我迭代 | ≥ 8/10 | 9/10 ✅ |
-| 活体·真实场景调用 | ≥ 8/10 | 6/10 |
-| 活体·L6 激活 | ≥ 8/10 | 3/10 |
+| 维度组 | 维度 | 达标线 |
+|-------|------|--------|
+| 结构（3 维） | SKILL.md 完整度 | ≥ 8/10 |
+| 结构（3 维） | 架构文档（6 层 + L 编号保留） | ≥ 8/10 |
+| 结构（3 维） | 核心文件模板 | ≥ 8/10 |
+| 实测（3 维） | L9 单测覆盖 | ≥ 6/10 |
+| 实测（3 维） | L6 单测覆盖 | ≥ 6/10 |
+| 实测（3 维） | 跨层融合 E2E | ≥ 6/10 |
+| 活体（3 维） | 自我迭代 | ≥ 8/10 |
+| 活体（3 维） | 真实场景调用 | ≥ 8/10 |
+| 活体（3 维） | L6 激活 | ≥ 8/10 |
 
-**当前总分**：49/90 = 54%（v0 SKILL.md 后预估 55/90）
+**方法论注记**（实战教训）：评分前必须验证源文件本身——拿过期副本评估会得出方向相反的结论。
 
-**v1 目标**：补 D1-D3 单测 + 激活 L6 → 70/90 验收达标
-
----
-
-## v0 → v1 路线图
-
-- [ ] v0.1：本文件（SKILL.md 草稿）✅
-- [ ] v0.2：补 `assets/8-layer-spec.md`（架构规范独立成档）
-- [ ] v0.3：补 `assets/templates/`（8 类核心文件模板）
-- [ ] v0.4：补 `scripts/` 链接（3 核心脚本 + L6 cleanup）
-- [ ] v0.5：补 `examples/`（3 最小可运行示例）
-- [ ] v0.6：补 9 维评分（v0 自检 + 第三方视角）
-- [ ] v1.0：基线评分 ≥ 70/90 → 验收达标
+> 历史评分档案（v1 出师自检原始记录）属部署方私有数据，未含于开源版；泛化版 9 维自检模板的收录见 Roadmap。
 
 ---
 
-_文档版本：2026-06-22_
+## Roadmap（未落地机制清单 · TODO）
+
+> v1.0 起正文只写已落地事实；以下是全部未落地项。标注生产已投产 = 部署方私有版本已有、开源版待脱敏回填。
+
+- [ ] **TODO · L9 自动调度**：每 30 分钟 cron 自动跑 unified-memory-search（生产当前为触发词硬约束手动调；若落地，落地后回写「落地状态」表）
+- [ ] **TODO · 子智能体 toolsAllow 两处配置**的规范化模板（与 v0.5 多智能体共享记忆规范一并交付）
+- [ ] **TODO · L5 short-term-recall.json 独立文件形态**：存档性保留（生产已由平台内置记忆组件 + 每日晋升任务替代；仅当需要跨平台可移植快照时再启用）
+- [ ] **TODO · TOOLS.md 第 8 类核心文件**：模板已提供，生产未启用；沉淀启用实践后回写文档
+- [ ] **v0.3 · save-conversations.py v3–v5 增强**脱敏回填：SQLite 索引重建（平台迁库适配）/ WAL 三件套拷贝防撕裂 / 临时文件清理（生产已投产，开源版停留在 v2）
+- [ ] **v0.3 · L6 运维脚本开源**：`shared-knowledge-cleanup.py`（清洗/去重，生产已投产）+ `migrate-conclusion-to-conversation-topic.py`（类型迁移，生产已执行）+ `tacit-knowledge-processor.py`
+- [ ] **v0.3 · 9 维自检泛化版模板**独立成档收录 `assets/`（历史评分档案本机私有，不入仓）
+- [ ] **v0.4 · 检索分流决策模板泛化版**（生产已落地，见「检索分流决策表」节；本项交付开箱即用模板文件）
+- [ ] **v0.5 · 周蒸馏自动化模板**（每周低峰定时产出周记忆蒸馏；生产已投产，配置未含于开源版）
+- [ ] **v0.5 · 多智能体共享记忆机制的规范化**（继承自既有路线图）
+
+---
+
+_文档版本：v1.0.0（2026-11-16 合成）_
 _编制：Six-Layer Memory Skill Contributors（MIT License）_
 _方法论：5 步法工作流（写 → 存 → 检 → 活 → 化）_
-_当前状态：v0.2.0（含 L6 自动更新 + 跨用户可安装）_
+_合成依据：v0.2.0 文档骨架 × 2026-11-16「本地运行 vs 开源版」一致性审计逐项核验（见变更记录）_
 _安装方法：见 `INSTALL.md` 或 GitHub `zqdwinding-create/qd-memory-skill`_
 
 ## 变更记录
 
+### v1.0.0（2026-11-16 合成正式版）
+
+以 v0.2.0 为底，按 2026-11-16「本地实际运行 vs GitHub 开源版」一致性审计逐项修正（审计报告存部署方 taskreports/skill-audit/）。方案 B：本地使用版与开源版同一基准，今后本地优化同步回仓。
+
+**纸面层清零（8 项）**：
+1. L9「每 30 分钟 cron 自动跑」→ 落地状态表改未落地，Roadmap TODO
+2. L5「short-term-recall.json 9 天窗口」→ 改写为折叠层事实（内置记忆组件 + 每日晋升任务），文件形态入 Roadmap
+3. L2 第 8 类 TOOLS.md → 改为「模板提供 8 类 / 生产启用 7 类」事实，启用实践入 Roadmap
+4. L6 路径 `config/shared-knowledge.json` → 统一为 workspace 根，config/ 子路径标废弃
+5. L6 第 5 类型 conclusion → 改为「5 前缀检测 / 活跃 4 类」事实，附类型迁移演化记录
+6. L7「Gemini embedding / 内置插件 worker」两说法 → 统一为引用层 + 实现相关（内置检索或自建本地语义索引）
+7. 联动表 H2（子智能体 toolsAllow）→ 承认未落地，Roadmap
+8. 联动表 H3（主会话触发条件）→ 改为已落地事实（生产部署验证）
+
+**矛盾统一（全文单一口径）**：L4 双源定义、L5 折叠层表述、L6 活跃路径、L7 引用层表述、测试数 badge 统一 63（原 63/78 混用）、L8 目录命名漂移说明；本文档 / 8-layer-spec.md / 两级 README / INSTALL.md / scripts/README.md 同步修正。
+
+**生产增强 9 项脱敏写入**：save-conversations v3–v5、L6 清洗/迁移脚本、检索三级分流决策表、本地语义索引（L7 可选实现）、9 维自检框架、行为层配套纪律（WAL / 巨型文件防复发 / 心跳兜底）、channel-aware 检索插件（β 层形态）、周蒸馏自动化——结构性内容入正文，部署私有细节标「未含于开源版」，全部入 Roadmap 跟踪回填。
+
+**本地安装目录收口**：部署方 `~/.openclaw/skills/eight-layer-memory/` 中比仓库更老的「8 层 v0 内部草稿」同步退役，替换为本基准（原件备份 `.bak`）。
+
 ### v0.2.0（2026-11-09 回传）
+
 - unified-memory-search.py：合入本地实战迭代版（34KB）——`--channel` 通道隔离过滤（tg/fs/wx/qqbot 别名）、`--date/--yesterday/--since/--until` 时间过滤、`--json` 结构化输出；新增"逻辑日"切换点（凌晨 4:00，逻辑日窗口 = [昨天04:00, 今天04:00)）
 - 落点：AGENTS.md 硬约束引用此脚本为记忆检索唯一入口；与内置 active-memory 的分流决策表见 AGENTS.md「记忆搜索」节
 - 状态修正：L5 短期记忆已废弃（被本脚本替代）、L7 为内置检索引用——对外表述"6 层存储 + 2 层引用"
 
-## 路线图
+### v0.1.0（2026-06-22）
+
+初始开源版：8 层架构行为模板、4 个生产脚本、3 套单测（63 tests）、10 类核心文件模板、安装 SOP。详见根 CHANGELOG。

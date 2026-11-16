@@ -1,11 +1,11 @@
-# 8 Layer Memory Skill
+# Six-Layer Memory Skill · 六层记忆体系
 
-> **跨通道 + 时间近度 + 跨层融合的 LLM 行为模板**
+> **跨通道 + 时间近度 + 跨层融合的 LLM 行为模板**（架构口径：6 层存储 + 2 层引用，L 编号保留兼容）
 > 让任何 OpenClaw 知道什么时候写到哪层、怎么查、怎么融合。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)]()
-[![Tests: 63 passing](https://img.shields.io/badge/tests-78%20passing-brightgreen.svg)]()
+[![Tests: 63 passing](https://img.shields.io/badge/tests-63%20passing-brightgreen.svg)]()
 
 ---
 
@@ -68,12 +68,12 @@ ls ~/.openclaw/workspace/shared-knowledge.json
 ```
 L0 上下文      LLM 当前 turn 的 prompt + tools
 L1 session    OpenClaw isolated session（per cron / per 子智能体）
-L2 核心文件    SOUL.md / USER.md / AGENTS.md / TOOLS.md / IDENTITY.md
+L2 核心文件    AGENTS / SOUL / USER / IDENTITY / MEMORY / TODO / PROBLEM（模板 8 类含 TOOLS，生产启用 7 类）
 L3 daily log  memory/YYYY-MM-DD.md（每日时间序）
-L4 raw         conversations/raw/YYYY-MM/*.jsonl（原始 session transcript）
-L5 短期        cache_entries SQLite（OpenClaw 内置，TTL）
-L6 shared      shared-knowledge.json（隐性知识库，跨通道共享）
-L7 向量        memory-core-local-embedding-worker（OpenClaw 内置）
+L4 raw         双源：agents/main/sessions 原生转录 + conversations/raw/YYYY-MM/*.jsonl（物化，L9 扫描源）
+L5 短期        折叠层：职责由 L9 承担；生产实现 = 内置记忆组件（SQLite TTL）+ 每日晋升任务
+L6 shared      ~/.openclaw/workspace/shared-knowledge.json（隐性知识库，跨通道共享）
+L7 检索引用    引用层，实现相关（内置向量检索或自建本地语义索引）
 L8 沉淀        MEMORY.md / lessons/system.md（长期经验）
 L9 跨层融合    unified-memory-search.py（本 SKILL 提供）
 ```
@@ -83,7 +83,7 @@ L9 跨层融合    unified-memory-search.py（本 SKILL 提供）
 | 步骤 | 操作 | 层 |
 |------|------|----|
 | 写 | LLM 把对话关键内容写到对应层 | L2/L3/L4 |
-| 存 | L6 自动捕捉（每 2h cron 跑） | L6 |
+| 存 | L6 自动捕捉（每 2h cron 跑；L5 已折叠） | L6 |
 | 检 | LLM 主动调 L9 unified-memory-search | L9 |
 | 活 | L6 + L3 + L4 三角融合回答 | L9 |
 | 化 | 长期经验沉淀到 L8 lessons | L8 |
@@ -95,7 +95,7 @@ L9 跨层融合    unified-memory-search.py（本 SKILL 提供）
 在 `~/.openclaw/workspace/AGENTS.md` 加：
 
 ```markdown
-| **「你记得 / 我之前 / 上次 / 我们讨论过 / 昨天聊过 / 之前说过 / 拍板 / 就这么定了 / 开干 / 6 层 / 记忆体系 / shared-knowledge / tacit / 隐性知识 / 跨通道 / 时间近度 / 跨层融合 / unified-memory-search」** | **eight-layer-memory** | **6 层记忆体系 SKILL**。**5 步法工作流**：写（L2/L3/L4）→ 存（L5/L6）→ 检（L7/L9 跨通道）→ 活（L6+L3+L4 三角融合）→ 化（L8 沉淀）。**路径**：调 `unified-memory-search.py` + `tacit-knowledge-catcher.py`。**默认启用** |
+| **「你记得 / 我之前 / 上次 / 我们讨论过 / 昨天聊过 / 之前说过 / 拍板 / 就这么定了 / 开干 / 6 层 / 记忆体系 / shared-knowledge / tacit / 隐性知识 / 跨通道 / 时间近度 / 跨层融合 / unified-memory-search」** | **eight-layer-memory** | **6 层记忆体系 SKILL**。**5 步法工作流**：写（L2/L3/L4）→ 存（L6，L5 已折叠）→ 检（L7/L9 跨通道）→ 活（L6+L3+L4 三角融合）→ 化（L8 沉淀）。**路径**：调 `unified-memory-search.py` + `tacit-knowledge-catcher.py`。**默认启用** |
 ```
 
 ---
@@ -132,7 +132,7 @@ eight-layer-memory/
 1. **自包含**：SKILL = 行为模板 + 生产脚本 + 单测，**不依赖外部**
 2. **跨用户**：`shared-knowledge.json` 等个人数据**不打包**，新用户装上 = 干净 L6
 3. **可移植**：纯 Python 标准库，无外部依赖
-4. **可验证**：78 个单测 + 5 分钟端到端验证 SOP
+4. **可验证**：63 个单测 + 5 分钟端到端验证 SOP
 5. **可观察**：L6 / L3 / L4 三角融合 = 跨层召回可视化
 
 ---
@@ -175,7 +175,7 @@ eight-layer-memory/
 - **方法论**：5 步法工作流（写 → 存 → 检 → 活 → 化）
 - **当前状态**：v0.2.0（生产部署验证）
 - **License**：MIT
-- **下个版本**：v1.1 加 showcase 视频
+- **下个版本**：v0.3 脚本回填 + L6 运维脚本开源（见 CHANGELOG 路线图）
 
 ---
 

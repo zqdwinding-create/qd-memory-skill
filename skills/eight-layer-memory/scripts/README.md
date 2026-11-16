@@ -48,7 +48,7 @@
 
 - **路径**：`skills/eight-layer-memory/scripts/save-conversations.py`
 - **用途**：会话保存（脚本 v2 — daily log 增量保存）
-- **L4 作用**：sessions/*.jsonl → memory/YYYY-MM-DD.md
+- **L4 作用**：agents/main/sessions 会话转录 → conversations/raw/YYYY-MM/*.jsonl（物化目录，L9 扫描源）
 - **依赖**：纯 Python 标准库
 - **调用**：
   ```bash
@@ -85,7 +85,7 @@ clawhub install eight-layer-memory
 
 # 安装方式 2：git
 git clone https://github.com/zqdwinding-create/qd-memory-skill.git
-cp -r qd-memory-skill/skills/eight-layer-memory ~/.openclaw/workspace/skills/
+cp -r qd-memory-skill/skills/eight-layer-memory ~/.openclaw/skills/
 
 # 验证脚本在 SKILL 里
 ls skills/eight-layer-memory/scripts/{unified-memory-search,tacit-knowledge-catcher,save-conversations,l6-incremental-catch}.py

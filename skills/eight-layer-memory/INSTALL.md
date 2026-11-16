@@ -2,7 +2,7 @@
 
 > **目标**：在另一台服务器/另一个 OpenClaw 上把 6 层记忆体系跑起来
 > **编制**：Six-Layer Memory Skill Contributors
-> **版本**：v1（2026-06-22 编制）
+> **版本**：v1.1（2026-11-16 同步 SKILL v1.0 基准口径；首版 2026-06-22）
 > **5 分钟可跑通**（假设已有 OpenClaw + Python 3.10+）
 
 ---
@@ -14,7 +14,7 @@
 | 类别 | 内容 | 路径 |
 |------|------|------|
 | **SKILL（行为模板）** | 让 LLM 知道 6 层怎么用、什么时候调什么 | `skills/eight-layer-memory/` |
-| **生产脚本（3 个）** | 真正干活的工具 | `~/.openclaw/skills/eight-layer-memory/scripts/` |
+| **生产脚本（4 个）** | 真正干活的工具 | `~/.openclaw/skills/eight-layer-memory/scripts/` |
 | **数据文件（L6）** | 隐性知识库 | `~/.openclaw/workspace/shared-knowledge.json` |
 
 **两者必须都装**：
@@ -147,7 +147,7 @@ for j in d.get('jobs', []):
 在 `~/.openclaw/workspace/AGENTS.md` 加：
 
 ```markdown
-| **「你记得 / 我之前 / 上次 / 我们讨论过 / 昨天聊过 / 之前说过 / 拍板 / 就这么定了 / 开干 / 6 层 / 记忆体系 / shared-knowledge / tacit / 隐性知识 / 跨通道 / 时间近度 / 跨层融合 / unified-memory-search」** | **eight-layer-memory** | **6 层记忆体系 SKILL**。**5 步法工作流**：写（L2/L3/L4）→ 存（L5/L6）→ 检（L7/L9 跨通道）→ 活（L6+L3+L4 三角融合）→ 化（L8 沉淀）。**路径**：调 `unified-memory-search.py` + `tacit-knowledge-catcher.py` + 9 维评分验收标准。**默认启用** |
+| **「你记得 / 我之前 / 上次 / 我们讨论过 / 昨天聊过 / 之前说过 / 拍板 / 就这么定了 / 开干 / 6 层 / 记忆体系 / shared-knowledge / tacit / 隐性知识 / 跨通道 / 时间近度 / 跨层融合 / unified-memory-search」** | **eight-layer-memory** | **6 层记忆体系 SKILL**。**5 步法工作流**：写（L2/L3/L4）→ 存（L6，L5 已折叠）→ 检（L7/L9 跨通道）→ 活（L6+L3+L4 三角融合）→ 化（L8 沉淀）。**路径**：调 `unified-memory-search.py` + `tacit-knowledge-catcher.py` + 9 维评分验收标准。**默认启用** |
 ```
 
 **位置**：AGENTS.md 的"技能加载"段（参考源机器）。
@@ -229,7 +229,7 @@ python3 -c "import json; d=json.load(open('~/.openclaw/workspace/shared-knowledg
 
 **6 层体系是 LLM 行为模板，可以跨用户复用**：
 - ✅ SKILL.md / 8-layer-spec.md / 9 维评分 / 模板 = **通用**
-- ✅ 3 个脚本 = **通用**（不依赖用户数据）
+- ✅ 4 个脚本 = **通用**（不依赖用户数据）
 - ❌ shared-knowledge.json = **个人数据，绝不复制**
 - ❌ daily logs = **个人数据，绝不复制**
 - ❌ SOUL.md / USER.md / IDENTITY.md = **个人身份，绝不复制**
@@ -263,7 +263,7 @@ python3 -c "import json; d=json.load(open('~/.openclaw/workspace/shared-knowledg
 - **5 个分类**：(1) SKILL 装 (2) 脚本装 (3) cron 装 (4) 白名单配 (5) 端到端验证
 - **不变量**：跨用户只装"通用部分"，不复制任何"个人数据"
 - **3 个常见错误**：toolsAllow 漏配、AGENTS.md 漏触发条件、shared-knowledge.json 误复制
-- **下个版本**：v1.1 补全测试覆盖 + 6 个 L2 核心文件模板扩展
+- **下个版本**：v0.3 脚本回填 + L6 运维脚本开源（见 CHANGELOG 路线图）
 
 ---
 

@@ -6,7 +6,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](skills/eight-layer-memory/LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)]()
-[![Tests: 63 passing](https://img.shields.io/badge/tests-78%20passing-brightgreen.svg)]()
+[![Tests: 63 passing](https://img.shields.io/badge/tests-63%20passing-brightgreen.svg)]()
 
 ---
 
@@ -25,14 +25,14 @@
 |---|---|---|
 | L0 上下文注入 | 每轮会话注入核心文件 | ✅ 独立 |
 | L1 会话层 | 当前会话工作记忆 | ✅ 独立 |
-| L2 核心文件 | 身份/档案/事实/教训等 8 类 | ✅ 独立 |
+| L2 核心文件 | 行为规范/档案/事实等（模板提供 8 类，生产部署启用 7 类） | ✅ 独立 |
 | L3 每日日志 | YYYY-MM-DD 原始流水 | ✅ 独立 |
-| L4 会话原始记录 | JSONL 转录，通道隔离真理源 | ✅ 独立 |
+| L4 会话原始记录 | JSONL 转录双源（平台原生转录 + save-conversations 物化目录），通道隔离真理源 | ✅ 独立 |
 | L6 隐性知识库 | 结构化 JSON 条目（shared-knowledge） | ✅ 独立 |
 | L8 经验沉淀 | 长周期提炼归档 | ✅ 独立 |
 | L9 跨层融合检索 | 三角融合 + 加权排序 | ✅ 独立（含检索工具） |
 | ~~L5 短期记忆~~ | — | ⛔ 已由 L9 替代，编号保留仅兼容 |
-| L7 向量搜索 | — | 🔗 内置检索的引用层（非独立实现） |
+| L7 检索引用层 | — | 🔗 检索引用层（实现相关：内置检索或自建本地语义索引） |
 
 > 命名说明：项目早期为 8 层架构，实战收敛后 L5/L7 折叠为"6 层存储 + 2 层引用"。层号 L 编号保留以兼容历史文档与脚本。
 
